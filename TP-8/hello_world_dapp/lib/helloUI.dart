@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'contract_linking.dart'; // Assurez-vous que le chemin est bon
 
 class HelloUI extends StatelessWidget {
+  const HelloUI({super.key});
+
   @override
   Widget build(BuildContext context) {
     // Récupération de l'instance du Provider
@@ -59,10 +61,6 @@ class HelloUI extends StatelessWidget {
                         Padding(
                           padding: EdgeInsets.only(top: 30),
                           child: ElevatedButton(
-                            child: Text(
-                              'Set Name',
-                              style: TextStyle(fontSize: 20),
-                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green, // [cite: 351]
                             ),
@@ -73,6 +71,10 @@ class HelloUI extends StatelessWidget {
                               ); // [cite: 351]
                               yourNameController.clear(); // [cite: 364]
                             },
+                            child: Text(
+                              'Set Name',
+                              style: TextStyle(fontSize: 20),
+                            ),
                           ),
                         ),
                       ],

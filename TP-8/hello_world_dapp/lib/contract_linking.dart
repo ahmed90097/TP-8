@@ -9,7 +9,7 @@ class ContractLinking extends ChangeNotifier {
   final String _rpcUrl = "http://127.0.0.1:7545";
   final String _wsUrl = "ws://127.0.0.1:7545/";
   final String _privateKey =
-      "0x9db3f0af4c982aff218ec841633ceb7174710c34591e4a1d203e3bdd0ec9731c";
+      "0x06ce364c34ec0a532648edc70882d20743aea5efe762e7bd4eae0d33e6eeb864";
 
   late Web3Client _client;
   bool isLoading = true;
@@ -31,7 +31,7 @@ class ContractLinking extends ChangeNotifier {
     initialSetup();
   }
 
-  initialSetup() async {
+  Future<void> initialSetup() async {
     _client = Web3Client(
       _rpcUrl,
       Client(),
@@ -46,14 +46,17 @@ class ContractLinking extends ChangeNotifier {
   }
 
   Future<void> getAbi() async {
-    String abiStringFile = await rootBundle.loadString(
-      "src/artifacts/HelloWorld.json",
-    );
+    String abiStringFile = await rootBundle.loadString("src/artifacts/HelloWorld.json");
     var jsonAbi = jsonDecode(abiStringFile);
     _abiCode = jsonEncode(jsonAbi["abi"]);
-    _contractAddress = EthereumAddress.fromHex(
-      jsonAbi["networks"]["5777"]["address"],
-    );
+    // Choisir dynamiquement le réseau présent dans le JSON (évite l'hardcode 5777/1337)
+    if (jsonAbi["networks"] != null && jsonAbi["networks"].isNotEmpty) {
+      var networks = jsonAbi["networks"] as Map<String, dynamic>;
+      var firstNetwork = networks.keys.first;
+      _contractAddress = EthereumAddress.fromHex(networks[firstNetwork]["address"]);
+    } else {
+      throw Exception("Aucune adresse de contrat trouvée dans l'ABI (networks)");
+    }
   }
 
   Future<void> getCredentials() async {
@@ -74,31 +77,59 @@ class ContractLinking extends ChangeNotifier {
     getName();
   }
 
-  getName() async {
-    var currentName = await _client.call(
-      contract: _contract,
-      function: _yourName,
-      params: [],
-    );
-    deployedName = currentName[0];
-    isLoading = false;
-    notifyListeners();
+  Future<void> getName() async {
+    try {
+      var currentName = await _client.call(
+        contract: _contract,
+        function: _yourName,
+        params: [],
+      );
+      // Convertir le résultat en string de manière sécurisée
+      if (currentName != null && currentName.isNotEmpty) {
+        var result = currentName[0];
+        deployedName = result is String ? result : result.toString();
+      } else {
+        deployedName = "Unknown";
+      }
+      isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      print("Erreur lors de la lecture du nom: $e");
+      deployedName = "Unknown";
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
-  setName(String nameToSet) async {
+  Future<void> setName(String nameToSet) async {
     isLoading = true;
     notifyListeners();
 
-    await _client.sendTransaction(
-      _credentials,
-      Transaction.callContract(
-        contract: _contract,
-        function: _setName,
-        parameters: [nameToSet],
-      ),
-      chainId: _chainId.toInt(), // Conversion nécessaire ici
-    );
+    try {
+      // Vérifier le solde du compte avant d'envoyer la transaction
+      EthereumAddress fromAddress = await _credentials.extractAddress();
+      EtherAmount balance = await _client.getBalance(fromAddress);
+      final minRequired = EtherAmount.fromUnitAndValue(EtherUnit.wei, BigInt.from(1000));
+      if (balance.getInWei < minRequired.getInWei) {
+        print("Solde insuffisant pour envoyer la transaction: ${balance.getInWei}");
+        isLoading = false;
+        notifyListeners();
+        return;
+      }
 
-    getName();
+      await _client.sendTransaction(
+        _credentials,
+        Transaction.callContract(
+          contract: _contract,
+          function: _setName,
+          parameters: [nameToSet],
+        ),
+        chainId: _chainId.toInt(), // Conversion nécessaire ici
+      );
+    } catch (e) {
+      print("Erreur lors de l'envoi de la transaction: $e");
+    }
+
+    await getName();
   }
 }

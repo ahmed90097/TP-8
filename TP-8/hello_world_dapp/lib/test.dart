@@ -31,7 +31,7 @@ class ContractLinking extends ChangeNotifier {
     initialSetup(); // [cite: 290-292]
   }
 
-  initialSetup() async {
+  Future<void> initialSetup() async {
     // Initialisation du client Web3 avec HTTP et WebSocket
     _client = Web3Client(
       _rpcUrl,
@@ -82,7 +82,7 @@ class ContractLinking extends ChangeNotifier {
     getName(); // [cite: 324]
   }
 
-  getName() async {
+  Future<void> getName() async {
     // Appel de la fonction de lecture (call)
     var currentName = await _client.call(
       contract: _contract,
@@ -95,7 +95,7 @@ class ContractLinking extends ChangeNotifier {
     notifyListeners(); // Mise à jour de l'UI [cite: 332]
   }
 
-  setName(String nameToSet) async {
+  Future<void> setName(String nameToSet) async {
     isLoading = true;
     notifyListeners();
 
