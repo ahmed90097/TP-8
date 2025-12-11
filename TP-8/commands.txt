@@ -1,0 +1,2 @@
+migrate --network develop --reset
+test
