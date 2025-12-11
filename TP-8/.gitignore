@@ -1,0 +1,19 @@
+# Flutter / Dart
+.dart_tool/
+build/
+**/build/
+**/pubspec.lock
+
+# IDE
+.idea/
+*.iml
+
+# Truffle / artifacts
+src/artifacts/
+**/artifacts/
+
+# Other
+.metadata
+node_modules/
+*.log
+*.lock
